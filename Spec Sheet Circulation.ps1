@@ -1,4 +1,4 @@
-﻿### Spec Sheet Circulation - Revised 7.21.2022
+### Spec Sheet Circulation - Revised 8.2.2022
 
 #region-----Create Environment
 
@@ -269,7 +269,7 @@ if ($result -eq [System.Windows.Forms.DialogResult]::OK)
     $revOld
 }
 
-if ($revOld.Length -lt 1 -or $revOld.Length -gt 1 -or $revOld -cnotmatch "[A-Z]")
+if ($revOld.Length -lt 1 -or $revOld.Length -gt 1 -or $revOld -notmatch "[A-Z]")
 {
     new-popup "Entered revision level is invalid. The program will now terminate." -Title "Error!" -Buttons OK -Icon Exclamation
     throw "Old Revision Level invalid"
@@ -323,12 +323,11 @@ if ($result -eq [System.Windows.Forms.DialogResult]::OK)
     $revNew
 }
 
-if ($revNew.Length -lt 1 -or $revNew.Length -gt 1 -or $revNew -cnotmatch "[A-Z]")
+if ($revNew.Length -lt 1 -or $revNew.Length -gt 1 -or $revNew -notmatch "[A-Z]")
 {
 new-popup "Entered revision level is invalid. The program will now terminate." -Title "Error!" -Buttons OK -Icon Exclamation
 throw "New Revision Level invalid"
 }
-
 #endregion
 
 #region      Create ConvertWordTo-PDF Function
@@ -446,6 +445,8 @@ $terminateNoFileFound = if (($litPenFileTest -or $cusLitFileTest -or $litSpecShe
 
 #endregion
 
+
+
 #Move Old Revision .docx to Archives
 Move-Item -Path "F:\Documentation\DOCS\Literature\Product Spec Sheets\$pline\$pnumber.docx" -Destination "N:\Deep_Archive_Documentation\DOCS\Literature\Product Spec Sheets\$pline\$pnumber\$pnumber Rev $revOld.docx" -Force
 #
@@ -478,10 +479,101 @@ Invoke-Item -Path "F:\Documentation\DOCS\Literature\Product Spec Sheets\$pline"
 
 #endregion
 
-
-###
-
 #region Revision Notes
+
+#region      Create ConvertWordTo-TXT Function - Needed for other Rev level implementation method
+
+#function ConvertWordTo-TXT {
+ 
+<# 
+  
+.SYNOPSIS 
+ 
+ConvertTo-PDF converts Microsoft Word documents to PDF files. 
+  
+.DESCRIPTION 
+ 
+The cmdlet queries the given source folder including sub-folders to find *.docx and *.doc files, 
+converts all found files and saves them as pdf in the Destination folder. After completition, the Destination
+folder with the newly created PDF files will be opened with Windows Explorer.
+  
+.PARAMETER SourceFolder
+  
+Mandatory. Enter the source folder of your Microsoft Word documents.
+  
+.PARAMETER DestinationFolder
+ 
+Optional. Enter the Destination folder to save the created PDF documents. If you omit this parameter, pdf files will
+be saved in the Source Folder.
+ 
+.EXAMPLE 
+ 
+ConvertWordTo-PDF -SourceFolder C:\Temp -DestinationFolder C:\Temp1
+ConvertWordTo-PDF -SourceFolder C:\temp
+  
+.NOTES 
+Author: Patrick Gruenauer | Microsoft PowerShell MVP [2018-2021] 
+Web: https://sid-500.com 
+  
+#>
+ 
+#[CmdletBinding()]
+ 
+#param
+#(
+  
+#[Parameter (Mandatory=$true,Position=0)]
+#[String]
+#$SourceFolder,
+  
+#[Parameter (Position=1)]
+#[String]
+#$DestinationFolder = $SourceFolder
+ 
+#)
+ 
+    #$i = 0
+ 
+    #$word = New-Object -ComObject word.application 
+    #$FormatText = 3
+    #$word.visible = $false
+    #$types = '*.docx','*.doc'
+ 
+    #If ((Test-Path $SourceFolder) -eq $false) {
+     
+    #throw "Error. Source Folder $SourceFolder not found." } 
+ 
+    #If ((Test-Path $DestinationFolder) -eq $false) {
+     
+    #throw "Error. Destination Folder $DestinationFolder not found." } 
+     
+    #$files = Get-ChildItem -Path $SourceFolder -Include $Types -Recurse -ErrorAction Stop
+    #''
+    #Write-Warning "Converting Files to TXT ..."
+    #''
+     
+    #foreach ($f in $files) {
+ 
+        #$path = $DestinationFolder + '\' + $f.Name.Substring(0,($f.Name.LastIndexOf('.')))
+        #$doc = $word.documents.open($f.FullName) 
+        #$doc.saveas($path,$FormatText) 
+        #$doc.close()
+        #Write-Output "$($f.Name)"
+        #$i++
+ 
+    #}
+    #''
+    #Write-Output "$i file(s) converted."
+    #Start-Sleep -Seconds 2 
+    #Invoke-Item $DestinationFolder
+    #$word.Quit()
+     
+     
+#}
+
+#endregion
+
+#region Old code
 
 #$FileList = Get-ChildItem -Path "F:\Documentation\DOCS\Customer Literature\Spec Sheets\$pline";
 #foreach ($File in $FileList) { 
@@ -496,5 +588,50 @@ Invoke-Item -Path "F:\Documentation\DOCS\Literature\Product Spec Sheets\$pline"
 #Rename Old Revision to include Rev Level
 #Rename-Item -Path "N:\Deep_Archive_Documentation\DOCS\Literature\Product Spec Sheets\$pline\$pnumber\$pnumber.docx" -NewName "N:\Deep_Archive_Documentation\DOCS\Literature\Product Spec Sheets\$pline\$pnumber\$pnumber Rev $revOld.docx" -WhatIf
 #Did not need, Move-Item can change filenames as well.
+
+#endregion
+
+#region Obtain Old & New Rev Level Values
+#NOTE: This is a very janky part of the code. Good luck if you have to edit it. If you do, I would suggest just adding two new text boxes at the top of the script for the user to input Rev Levels.
+#NOTE: Gave up on this for now. Might return when I'm less busy overall. This section of code "simply" converts the word to a txt file, parses for Rev level, increments the old Rev level, and deletes unecessary files.
+
+#Copy-Item -Path "F:\Documentation\DOCS\Literature\Product Spec Sheets\$pline\$pnumber.docx" -Destination "F:\Documentation\DOCS\Literature\Product Spec Sheets\temp\$pnumber.docx" -Force
+
+#ConvertWordTo-TXT -SourceFolder "F:\Documentation\DOCS\Literature\Product Spec Sheets\temp"
+
+#$revOldString = Get-Content "F:\Documentation\DOCS\Literature\Product Spec Sheets\temp\$pnumber.txt" -Raw
+
+#$revOldString -match ("Rev [A-Z]")
+
+#Write-Output $revOldString = $Matches("Rev [A-Z]")
+
+#$revOldWithRev = $Matches[0]
+
+#$revOld = $revOldWithRev.Substring(4,1)
+
+#$revNewInc = [int][char]"$revOld"
+#$revNewInc++
+
+#$revNew = [char]$revNewInc
+
+#if ($revNew -eq "I" -or "L" -or "O" -or "Q" -or "S" -or "X")
+        #{
+            #$revNewInc = [int][char]"$revOld"
+            #$revNewInc++
+            #$revNewInc++
+            #$revNew = [char]$revNewInc
+        #}
+#elseif ($revNew -eq "Z")
+        #{
+            #New-Popup -message "I apologize, I never programmed this to work past Rev W (since Rev Z shouldn't exist)!" -title "Revision Level Reused" -time 0 -Icon Exclamation
+        #}
+#else
+        #{
+            #$revNew = [char]$revNewInc
+        #}
+
+#Remove-Item -Path "F:\Documentation\DOCS\Literature\Product Spec Sheets\temp\$pnumber.txt"
+
+#endregion
 
 #endregion
